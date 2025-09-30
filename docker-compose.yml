@@ -1,0 +1,63 @@
+networks:
+  todo-network:
+    external: true
+
+services:
+  traefik:
+    image: traefik:v3.1
+    container_name: todo-gateway
+    command:
+      - --providers.docker=true
+      - --entrypoints.web.address=:80
+      - --api.dashboard=true
+      - --api.insecure=true
+      - --accesslog=true
+      - --log.level=INFO
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - todo-network
+
+  monolith:
+    image: ioncstn/monolith:latest
+    container_name: todo-monolith
+    networks:
+      - todo-network
+    depends_on:
+      - mysql
+    environment:
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: todo
+      DB_HOST: mysql
+      JWT_SECRET: jwt_secret
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_USER: ""
+      SMTP_PASSWORD: ""
+      APP_URL: "http://localhost:8765"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.monolith.rule=Host(`local.todo.com`)
+      - traefik.http.routers.monolith.entrypoints=web
+      - traefik.http.services.monolith.loadbalancer.server.port=8765
+      - traefik.http.routers.monolith.service=monolith
+
+  mysql:
+    image: mysql:8
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: todo
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - todo-network
+
+volumes:
+  mysql_data:

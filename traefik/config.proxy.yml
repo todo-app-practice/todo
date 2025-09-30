@@ -1,0 +1,7 @@
+http:
+  routers:
+    monolith:
+      entryPoints:
+        - web
+      rule: "Host(`local.todo.com`)"
+      service: todo-monolith

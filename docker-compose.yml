@@ -21,8 +21,22 @@ services:
     networks:
       - todo-network
 
+  web:
+    image: ioncstn/web:latest
+    pull_policy: always
+    container_name: todo-web
+    networks:
+      - todo-network
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.web.rule=Host(`local.todo.com`)
+      - traefik.http.routers.web.entrypoints=web
+      - traefik.http.services.web.loadbalancer.server.port=5173
+      - traefik.http.routers.web.service=web
+
   monolith:
     image: ioncstn/monolith:latest
+    pull_policy: always
     container_name: todo-monolith
     networks:
       - todo-network
@@ -41,13 +55,14 @@ services:
       APP_URL: "http://localhost:8765"
     labels:
       - traefik.enable=true
-      - traefik.http.routers.monolith.rule=Host(`local.todo.com`)
+      - traefik.http.routers.monolith.rule=Host(`local.todo.com`) && (PathPrefix(`/auth`) || PathPrefix(`/user`) || PathPrefix(`/todos`))
       - traefik.http.routers.monolith.entrypoints=web
       - traefik.http.services.monolith.loadbalancer.server.port=8765
       - traefik.http.routers.monolith.service=monolith
 
   mysql:
     image: mysql:8
+    container_name: todo-mysql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
@@ -59,5 +74,18 @@ services:
     networks:
       - todo-network
 
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: todo-mailpit
+    ports:
+      - "1025:1025"  # SMTP port
+      - "8025:8025"  # Web UI port
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    volumes:
+      - mailpit_data:/data
+
 volumes:
   mysql_data:
+  mailpit_data:

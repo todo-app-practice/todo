@@ -52,7 +52,7 @@ services:
       SMTP_PORT: 1025
       SMTP_USER: ""
       SMTP_PASSWORD: ""
-      APP_URL: "http://localhost:8765"
+      APP_URL: "http://local.todo.com"
     labels:
       - traefik.enable=true
       - traefik.http.routers.monolith.rule=Host(`local.todo.com`) && (PathPrefix(`/auth`) || PathPrefix(`/user`) || PathPrefix(`/todos`))
@@ -85,6 +85,8 @@ services:
       MP_SMTP_AUTH_ALLOW_INSECURE: 1
     volumes:
       - mailpit_data:/data
+    networks:
+      - todo-network
 
 volumes:
   mysql_data:
